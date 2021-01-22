@@ -1502,7 +1502,7 @@ sub label
     }
 
   $label = $self->_un_escape($label) if !$_[0] && $label =~ /\\[EGHNT]/;
-
+  $label =~ s/([\x{4E00}-\x{9FFF}])/$1\x{FFFF}/g; 
   $label;
   }
 
