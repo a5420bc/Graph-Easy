@@ -5,7 +5,7 @@
 
 package Graph::Easy::As_graphml;
 
-$VERSION = '0.03';
+$VERSION = '0.76';
 
 #############################################################################
 #############################################################################
@@ -13,6 +13,7 @@ $VERSION = '0.03';
 package Graph::Easy;
 
 use strict;
+use warnings;
 
 use Graph::Easy::Attributes;
 
@@ -86,6 +87,8 @@ sub _graphml_attr_keys
 #   </y:ShapeNode>
 # </data>
 
+use Graph::Easy::Util qw(ord_values);
+
 sub _as_graphml
   {
   my $self = shift;
@@ -93,7 +96,7 @@ sub _as_graphml
   my $args = $_[0];
   $args = { name => $_[0] } if ref($args) ne 'HASH' && @_ == 1;
   $args = { @_ } if ref($args) ne 'HASH' && @_ > 1;
-  
+
   $args->{format} = 'graph-easy' unless defined $args->{format};
 
   if ($args->{format} !~ /^(graph-easy|Graph::Easy|yED)\z/i)
@@ -120,7 +123,7 @@ sub _as_graphml
 
 EOF
 ;
-	  
+
   $txt =~ s/##DATE##/scalar localtime()/e;
   $txt =~ s/##VERSION##/$Graph::Easy::VERSION/;
   $txt =~ s/##SCHEMA##/$schema/;
@@ -167,7 +170,7 @@ EOF
 
   ###########################################################################
   # now the attributes on the objects:
-  for my $o (@nodes, values %{$self->{edges}})
+  for my $o (@nodes, ord_values ( $self->{edges} ))
     {
     $txt .=
 	$self->_graphml_attr_keys( $tpl, $tpl_no_default, $o->class(),
@@ -187,8 +190,8 @@ EOF
     {
     $txt .= $g->as_graphml($indent.'  ',$ids);			# marks nodes as processed if nec.
     }
- 
-  $indent = '    ';		
+
+  $indent = '    ';
   foreach my $n (@nodes)
     {
     next if $n->{group};				# already done in a group
@@ -260,6 +263,8 @@ package Graph::Easy::Group;
 
 use strict;
 
+use Graph::Easy::Util qw(ord_values);
+
 sub as_graphml
   {
   my ($self, $indent, $ids) = @_;
@@ -268,7 +273,7 @@ sub as_graphml
 	$self->{graph}->type() . "\">\n";
   $txt .= $self->{graph}->_attributes_as_graphml($self, $indent, $ids->{graph});
 
-  foreach my $n (values %{$self->{nodes}})
+  foreach my $n (ord_values ( $self->{nodes} ))
     {
     my @out = $n->sorted_successors();
 
@@ -333,7 +338,7 @@ sub as_graphml
   my ($self, $indent, $ids) = @_;
 
   my $g = $self->{graph};
-  my $txt = $indent . '<edge source="' . $g->_safe_xml($self->{from}->{name}) . 
+  my $txt = $indent . '<edge source="' . $g->_safe_xml($self->{from}->{name}) .
 		     '" target="' . $g->_safe_xml($self->{to}->{name}) . "\">\n";
 
   $txt .= $g->_attributes_as_graphml($self, $indent, $ids->{edge});
@@ -342,7 +347,7 @@ sub as_graphml
 
   $txt;
   }
- 
+
 1;
 __END__
 
@@ -353,7 +358,7 @@ Graph::Easy::As_graphml - Generate a GraphML text from a Graph::Easy object
 =head1 SYNOPSIS
 
 	use Graph::Easy;
-	
+
 	my $graph = Graph::Easy->new();
 
 	$graph->add_edge ('Bonn', 'Berlin');

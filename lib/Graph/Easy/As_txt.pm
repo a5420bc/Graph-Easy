@@ -4,7 +4,7 @@
 
 package Graph::Easy::As_txt;
 
-$VERSION = '0.15';
+$VERSION = '0.76';
 
 #############################################################################
 #############################################################################
@@ -12,6 +12,7 @@ $VERSION = '0.15';
 package Graph::Easy;
 
 use strict;
+use warnings;
 
 sub _as_txt
   {
@@ -78,10 +79,10 @@ sub _as_txt
       {
       $n->{_p} = 1;			# mark as processed
       $count++;
-      $txt .= $n->as_pure_txt() . $att . "\n"; 
+      $txt .= $n->as_pure_txt() . $att . "\n";
       }
     }
- 
+
   $txt .= "\n" if $count > 0;		# insert a newline
 
   # output groups first, with their nodes
@@ -102,7 +103,7 @@ sub _as_txt
   # [A]->[B]
   # [B]->[E]
   # [B]->[C] etc
- 
+
   @nodes = $self->sorted_nodes('rank','name');
   foreach my $n (@nodes)
     {
@@ -187,7 +188,7 @@ sub attributes_as_txt
   # nodes that were autosplit
   if (exists $self->{autosplit})
     {
-    # other nodes are invisible in as_txt: 
+    # other nodes are invisible in as_txt:
     return '' unless defined $self->{autosplit};
     # the first one might have had a label set
     }
@@ -212,13 +213,13 @@ sub attributes_as_txt
     my $names = {};
     for my $child ($self, @$parts)
       {
-      for my $k (keys %{$child->{att}})
+      for my $k (sort keys %{$child->{att}})
         {
         $names->{$k} = undef;
         }
       }
 
-    for my $k (keys %$names)
+    for my $k (sort keys %$names)
       {
       next if $k eq 'basename';
       my $val = $self->{att}->{$k};
@@ -253,7 +254,7 @@ sub attributes_as_txt
   delete $new->{group};
 
   # for groups inside groups, insert their group attribute
-  $new->{group} = $self->{group}->{name} 
+  $new->{group} = $self->{group}->{name}
     if $self->isa('Graph::Easy::Group') && exists $self->{group};
 
   if (defined $self->{origin})
@@ -271,7 +272,7 @@ sub attributes_as_txt
     delete $new->{columns};
     # don't output the default size
     delete $new->{size} if $new->{size} eq '1,1';
-    } 
+    }
 
   for my $atr (sort keys %$new)
     {
@@ -343,8 +344,8 @@ sub as_pure_txt
 
     # quote special chars in name (but not |)
     $name =~ s/([\[\]\{\}\#])/\\$1/g;
- 
-    return '[ '. $name .' ]' 
+
+    return '[ '. $name .' ]'
     }
 
   my $name = $self->{name};
@@ -365,7 +366,7 @@ sub as_txt
     my $name = $self->{autosplit};
     # quote special chars in name (but not |)
     $name =~ s/([\[\]\{\}\#])/\\$1/g;
-    return '[ ' . $name . ' ]' 
+    return '[ ' . $name . ' ]'
     }
 
   my $name = $self->{name};
@@ -400,7 +401,7 @@ sub _as_txt
 
   my $left = ' '; $left = ' <' if $self->{bidirectional};
   my $right = '> '; $right = ' ' if $self->{undirected};
-  
+
   my $s = $self->style() || 'solid';
 
   my $style = '--';
@@ -424,7 +425,7 @@ sub _as_txt
       Carp::confess ("Unknown edge style '$s'\n");
       }
     }
- 
+
   $n = $style . " $n " if $n ne '';
 
   # make " -  " into " - -  "
@@ -445,7 +446,7 @@ Graph::Easy::As_txt - Generate textual description from graph object
 =head1 SYNOPSIS
 
 	use Graph::Easy;
-	
+
 	my $graph = Graph::Easy->new();
 
 	my $bonn = Graph::Easy::Node->new(

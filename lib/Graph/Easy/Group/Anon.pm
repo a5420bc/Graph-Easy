@@ -6,9 +6,10 @@
 package Graph::Easy::Group::Anon;
 
 use Graph::Easy::Group;
+use warnings;
 
 @ISA = qw/Graph::Easy::Group/;
-$VERSION = '0.02';
+$VERSION = '0.76';
 
 use strict;
 
@@ -61,7 +62,7 @@ sub _as_part_txt
 sub as_graphviz_txt
   {
   my $self = shift;
-  
+
   my $name = $self->{name};
 
   # quote special chars in name

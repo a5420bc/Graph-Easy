@@ -1,12 +1,12 @@
 #############################################################################
-# Grid-management and layout preperation.
+# Grid-management and layout preparation.
 #
 # (c) by Tels 2004-2006.
 #############################################################################
 
 package Graph::Easy::Layout::Grid;
 
-$VERSION = '0.07';
+$VERSION = '0.76';
 
 #############################################################################
 #############################################################################
@@ -14,6 +14,9 @@ $VERSION = '0.07';
 package Graph::Easy;
 
 use strict;
+use warnings;
+
+use Graph::Easy::Util qw(ord_values);
 
 sub _balance_sizes
   {
@@ -26,7 +29,7 @@ sub _balance_sizes
 
   return if $need < 1;
 
-  # if there is only one element, return it immidiately
+  # if there is only one element, return it immediately
   if (@$sizes == 1)
     {
     $sizes->[0] = $need if $sizes->[0] < $need;
@@ -36,7 +39,7 @@ sub _balance_sizes
   # endless loop until constraint is met
   while (1)
     {
-  
+
     # find the smallest size, and also compute their sum
     my $sum = 0; my $i = 0;
     my $sm = $need + 1;		# start with an arbitrary size
@@ -47,7 +50,7 @@ sub _balance_sizes
       next if $s == 0;
       if ($s < $sm)
 	{
-        $sm = $s; $sm_i = $i; 
+        $sm = $s; $sm_i = $i;
 	}
       $i++;
       }
@@ -58,7 +61,7 @@ sub _balance_sizes
     # increase the smallest size by one, then try again
     $sizes->[$sm_i]++;
     }
- 
+
 #  use Data::Dumper; print STDERR "# " . Dumper($sizes),"\n";
 
   undef;
@@ -70,9 +73,9 @@ sub _prepare_layout
   # sizes and placement of the different cells (edges, nodes etc).
   my ($self,$format) = @_;
 
-  # Find out for each row and colum how big they are:
+  # Find out for each row and column how big they are:
   #   +--------+-----+------+
-  #   | Berlin | --> | Bonn | 
+  #   | Berlin | --> | Bonn |
   #   +--------+-----+------+
   # results in:
   #        w,  h,  x,  y
@@ -80,8 +83,8 @@ sub _prepare_layout
   # 1,0 => 7,  3,  10, 0
   # 2,0 => 8,  3,  16, 0
 
-  # Technically, we also need to "compress" away non-existant columns/rows.
-  # We achive that by simply rendering them with size 0, so they become
+  # Technically, we also need to "compress" away non-existent columns/rows.
+  # We achieve that by simply rendering them with size 0, so they become
   # practically invisible.
 
   my $cells = $self->{cells};
@@ -95,8 +98,8 @@ sub _prepare_layout
   # objects covering multiple cells. The single-cell objects can be solved
   # first:
 
-  # find all x and y occurances to sort them by row/columns
-  for my $cell (values %$cells)
+  # find all x and y occurrences to sort them by row/columns
+  for my $cell (ord_values $cells)
     {
     my ($x,$y) = ($cell->{x}, $cell->{y});
 
@@ -113,7 +116,7 @@ sub _prepare_layout
 
     # Set the minimum cell size only for single-celled objects:
     if ( (($cell->{cx}||1) + ($cell->{cy}||1)) == 2)
-      { 
+      {
       # record maximum size for that col/row
       $rows->{$y} = $h if $h >= ($rows->{$y} || 0);
       $cols->{$x} = $w if $w >= ($cols->{$x} || 0);
@@ -124,14 +127,14 @@ sub _prepare_layout
     # is another object in the same row/column.
     $mx = $x if $x > $mx;
     $my = $y if $y > $my;
-    } 
+    }
 
   # insert a dummy row/column with size=0 as last
   $rows->{$my+1} = 0;
   $cols->{$mx+1} = 0;
 
   # do the last step again, but for multi-celled objects
-  for my $cell (values %$cells)
+  for my $cell (ord_values $cells)
     {
     my ($x,$y) = ($cell->{x}, $cell->{y});
 
@@ -183,7 +186,7 @@ sub _prepare_layout
         $rows->{$i+$y} = $sizes[$i];
 	}
       }
-    } 
+    }
 
   print STDERR "# Calculating absolute positions for rows/columns\n" if $self->{debug};
 
@@ -208,9 +211,9 @@ sub _prepare_layout
   print STDERR "# Finding max. dimensions for framebuffer\n" if $self->{debug};
   my $max_y = 0; my $max_x = 0;
 
-  for my $v (values %$cells)
+  for my $v (ord_values $cells)
     {
-    # Skip multi-celled nodes for later. 
+    # Skip multi-celled nodes for later.
     next if ($v->{cx}||1) + ($v->{cy}||1) != 2;
 
     # X and Y are col/row, so translate them to real pos
@@ -243,7 +246,7 @@ sub _prepare_layout
     }
 
   # repeat the previous step, now for multi-celled objects
-  foreach my $v (values %{$self->{cells}})
+  foreach my $v (ord_values ( $self->{cells} ))
     {
     next unless defined $v->{x} && (($v->{cx}||1) + ($v->{cy}||1) > 2);
 
@@ -286,7 +289,7 @@ Graph::Easy::Layout::Grid - Grid management and size calculation
 =head1 SYNOPSIS
 
 	use Graph::Easy;
-	
+
 	my $graph = Graph::Easy->new();
 
 	my $bonn = Graph::Easy::Node->new(

@@ -5,7 +5,7 @@
 
 package Graph::Easy::Layout::Path;
 
-$VERSION = '0.16';
+$VERSION = '0.76';
 
 #############################################################################
 #############################################################################
@@ -13,6 +13,7 @@ $VERSION = '0.16';
 package Graph::Easy::Node;
 
 use strict;
+use warnings;
 
 use Graph::Easy::Edge::Cell qw/
  EDGE_END_E EDGE_END_N EDGE_END_S EDGE_END_W
@@ -60,7 +61,7 @@ sub _near_places
   # Take a node and return a list of possible placements around it and
   # prune out already occupied cells. $d is the distance from the node
   # border and defaults to two (for placements). Set it to one for
-  # adjacent cells. 
+  # adjacent cells.
 
   # If defined, $type contains four flags for each direction. If undef,
   # two entries (x,y) will be returned for each pos, instead of (x,y,type).
@@ -72,7 +73,7 @@ sub _near_places
 
   my $cx = $n->{cx} || 1;
   my $cy = $n->{cy} || 1;
-  
+
   $d = 2 unless defined $d;		# default is distance = 2
 
   my $flags = $type;
@@ -131,7 +132,7 @@ sub _near_places
 
   my $idx = 0;
   my @results = ( [], [], [], [] );
- 
+
   $cy--; $cx--;
   my $t = $flags->[$idx++];
   # right
@@ -193,8 +194,8 @@ sub _allowed_places
   # return the valid ones (e.g. that are in both lists)
   my ($self, $places, $allowed, $step) = @_;
 
-  print STDERR 
-   "# calculating allowed places for $self->{name} from " . @$places . 
+  print STDERR
+   "# calculating allowed places for $self->{name} from " . @$places .
    " positions and " . scalar @$allowed . " allowed ones:\n"
     if $self->{graph}->{debug};
 
@@ -222,13 +223,13 @@ sub _allowed_places
 
 sub _allow
   {
-  # return a list of places, depending on the start/end atribute:
+  # return a list of places, depending on the start/end attribute:
   # "south" - any place south
   # "south,0" - first place south
-  # "south,-1" - last place south  
+  # "south,-1" - last place south
   # XXX TODO:
   # "south,0..2" - first three places south
-  # "south,0,1,-1" - first, second and last place south  
+  # "south,0,1,-1" - first, second and last place south
 
   my ($self, $dir, @pos) = @_;
 
@@ -271,7 +272,7 @@ sub _allow
       $x += $p->[5];
       $y += $p->[6];
       }
-    } 
+    }
   else
     {
     # allow only the given position
@@ -301,7 +302,7 @@ use Graph::Easy::Edge::Cell qw/
 sub _clear_tries
   {
   # Take a list of potential positions for a node, and then remove the
-  # ones that are immidiately near any other node.
+  # ones that are immediately near any other node.
   # Returns a list of "good" positions. Afterwards $node->{x} is undef.
   my ($self, $node, $cells, $tries) = @_;
 
@@ -331,7 +332,7 @@ sub _clear_tries
                 $x-1, $y+($node->{cy}||1),			# lowerleft corner
                 $x+($node->{cx}||1), $y+($node->{cy}||1),	# lowerright corner
                 $x+($node->{cx}||1), $y-1;			# upperright corner
-    
+
     # check all near places to be free from nodes (except our children)
     my $j = 0; my $g = 0;
     while ($j < @near)
@@ -339,7 +340,7 @@ sub _clear_tries
       my $xy = $near[$j]. ',' . $near[$j+1];
 
 #      print STDERR "# checking near-place: $xy: " . ref($cells->{$xy}) . "\n" if $self->{debug};
-      
+
       my $cell = $cells->{$xy};
 
       # skip, unless we are a children of node, or the cell is our children
@@ -388,6 +389,8 @@ sub _placed_shared
   $placed;
   }
 
+use Graph::Easy::Util qw(first_kv);
+
 sub _find_node_place
   {
   # Try to place a node (or node cluster). Return score (usually 0).
@@ -414,7 +417,7 @@ sub _find_node_place
       $co->{$c} = $self->{_rank_pos}->{ $r };
       while (1 < 3)
         {
-#	print STDERR "# trying to force placement of '$node->{name}' at $co->{x} $co->{y}\n";    
+#	print STDERR "# trying to force placement of '$node->{name}' at $co->{x} $co->{y}\n";
         return 0 if $node->_do_place($co->{x},$co->{y},$self);
         $co->{$c} += 2;
         }
@@ -427,14 +430,14 @@ sub _find_node_place
 
   my $min_dist = 2;
   # minlen = 0 => min_dist = 2,
-  # minlen = 1 => min_dist = 2, 
+  # minlen = 1 => min_dist = 2,
   # minlen = 2 => min_dist = 3, etc
   $min_dist = $edge->attribute('minlen') + 1 if ref($edge);
 
   # if the node has outgoing edges (which might be shared)
   if (!ref($edge))
     {
-    (undef,$edge) = each %{$node->{edges}} if keys %{$node->{edges}} > 0;
+    (undef,$edge) = first_kv($node->{edges}) if keys %{$node->{edges}} > 0;
     }
 
   my $dir = undef; $dir = $edge->flow() if ref($edge);
@@ -517,7 +520,7 @@ sub _find_node_place
       $min_dist++ if $edge->label() ne '';			# make more space for the label
 
       # if the node to be placed is not in the list to be placed, it is the end-point
-      
+
       # see if we are the first shared node to be placed
       my $placed = $self->_placed_shared(@shared_nodes);
 
@@ -559,7 +562,7 @@ sub _find_node_place
     {
     @tries = $parent->_near_places($cells, $min_dist, undef, 0, $dir);
 
-    print STDERR 
+    print STDERR
 	"# Trying chained placement of $node->{name} with min distance $min_dist from parent $parent->{name}\n"
 	if $self->{debug};
 
@@ -609,7 +612,7 @@ sub _find_node_place
       {
       # only one placed predecessor, so place $node near it
       print STDERR "# placing $node->{name} near predecessor\n" if $self->{debug};
-      @tries = ( $pre[0]->_near_places($cells, $min_dist), $pre[0]->_near_places($cells,$min_dist+2) ); 
+      @tries = ( $pre[0]->_near_places($cells, $min_dist), $pre[0]->_near_places($cells,$min_dist+2) );
       }
     else
       {
@@ -623,7 +626,7 @@ sub _find_node_place
       if ($dx != 0 && $dy != 0)
         {
         # ok, so try to place at the crossing point
-	@tries = ( 
+	@tries = (
 	  $pre[0]->{x}, $pre[1]->{y},
 	  $pre[0]->{y}, $pre[1]->{x},
 	);
@@ -640,8 +643,8 @@ sub _find_node_place
 	  @tries = ( $pre[1]->{x} + int($dx / 2), $pre[1]->{y} );
           }
         }
-      # XXX TODO BUG: shouldnt we also try this if we have more than 2 placed
-      # predecessors?
+      # XXX TODO BUG: shouldn't we also try this if we have more than 2
+      # placed predecessors?
 
       # In addition, we can also try to place the node around the
       # different nodes:
@@ -664,7 +667,7 @@ sub _find_node_place
   foreach my $s (@suc)
     {
     # for each successors (especially if there is only one), try to place near
-    push @tries, $s->_near_places($cells, $min_dist); 
+    push @tries, $s->_near_places($cells, $min_dist);
     push @tries, $s->_near_places($cells, $min_dist + 2);
     }
 
@@ -674,7 +677,7 @@ sub _find_node_place
   print STDERR "# Left with " . scalar @tries . " for node $node->{name}\n" if $self->{debug};
 
   splice (@tries,0,$try) if $try > 0;	# remove the first N tries
-  
+
   while (@tries > 0)
     {
     my $x = shift @tries;
@@ -694,13 +697,13 @@ sub _find_node_place
   # find out which sides of the node predecessor node(s) still have free
   # ports/slots. With increasing distances, try to place the node around these.
 
-  # If no predecessors/incoming edges, try to place in column 0, otherwise 
+  # If no predecessors/incoming edges, try to place in column 0, otherwise
   # considered the node's rank, too
 
   my $col = 0; $col = $node->{rank} * 2 if @pre > 0;
 
   $col = $pre[0]->{x} if @pre > 0;
-  
+
   # find the first free row
   my $y = 0;
   $y +=2 while (exists $cells->{"$col,$y"});
@@ -716,9 +719,9 @@ sub _find_node_place
     $y += 2;
     }
 
-  $node->{x} = $col; 
+  $node->{x} = $col;
 
-  0;							# success, score 0 
+  0;							# success, score 0
   }
 
 sub _trace_path
@@ -764,7 +767,7 @@ sub _create_cell
   my ($self,$edge,$x,$y,$type) = @_;
 
   my $cells = $self->{cells}; my $xy = "$x,$y";
-  
+
   if (ref($cells->{$xy}) && $cells->{$xy}->isa('Graph::Easy::Edge'))
     {
     $cells->{$xy}->_make_cross($edge,$type & EDGE_FLAG_MASK);
@@ -794,7 +797,7 @@ sub _path_is_clear
     $i += 3;
 
     return 0 if exists $cells->{"$x,$y"};	# obstacle hit
-    } 
+    }
   1;						# path is clear
   }
 
@@ -808,7 +811,7 @@ Graph::Easy::Layout::Path - Path management for Manhattan-style grids
 =head1 SYNOPSIS
 
 	use Graph::Easy;
-	
+
 	my $graph = Graph::Easy->new();
 
 	my $bonn = Graph::Easy::Node->new(
@@ -885,11 +888,11 @@ This module injects the following methods into C<Graph::Easy::Node>:
 =head2 _near_places()
 
 	my $node->_near_places();
-  
+
 Take a node and return a list of possible placements around it and
 prune out already occupied cells. $d is the distance from the node
 border and defaults to two (for placements). Set it to one for
-adjacent cells. 
+adjacent cells.
 
 =head2 _shuffle_dir()
 

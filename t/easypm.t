@@ -122,23 +122,23 @@ is ($graph->is_simple_graph(), 1, 'still simple graph');
 #############################################################################
 # attribute tests
 
-is ($graph->attribute('background'), 'inherit', 
+is ($graph->attribute('background'), 'inherit',
 	'graph background = undef');
 
-is ($graph->attribute('node', 'background'), 'inherit', 
+is ($graph->attribute('node', 'background'), 'inherit',
 	'node background = undef');
 
-is ($graph->attribute('node', 'fill'), 'white', 
+is ($graph->attribute('node', 'fill'), 'white',
 	'node { fill: white }');
 
-is ($graph->attribute('graph', 'border'), 'none', 
+is ($graph->attribute('graph', 'border'), 'none',
 	'graph { border: none; }');
 
 $graph->set_attributes ('graph', { color => 'white', background => 'red' });
 
-is ($graph->attribute('graph', 'background'), 'red', 
+is ($graph->attribute('graph', 'background'), 'red',
 	'now: graph { background: red }');
-is ($graph->attribute('graph', 'color'), 'white', 
+is ($graph->attribute('graph', 'color'), 'white',
 	'now: graph { color: white }');
 
 good_css ($graph);
@@ -157,7 +157,7 @@ good_css($graph);
 
 $graph->set_attributes ('node.cities', { color => '#0000ff' } );
 
-good_css($graph, 
+good_css($graph,
   'table.graph42 .node_cities',
   'table.graph42 .node,table.graph42 .node_anon,table.graph42 .node_cities'
   );
@@ -193,7 +193,7 @@ node.cities { color: #0000ff; }
 [ Frankfurt ] --> [ Dresden ]
 [ Potsdam ] --> [ Cottbus ]
 HERE
-, 'with empty group Cities'); 
+, 'with empty group Cities');
 
 $node->add_to_group($group);
 
@@ -214,13 +214,13 @@ node.cities { color: #0000ff; }
 [ Frankfurt ] --> [ Dresden ]
 [ Potsdam ] --> [ Cottbus ]
 HERE
-, 'with empty group Cities'); 
+, 'with empty group Cities');
 
 
 #############################################################################
 # title/link/autolink/autotitle/linkbase not in CSS
 
-$graph->set_attributes ('node', 
+$graph->set_attributes ('node',
   { link => 123, title => 123, autolink => 'name', autotitle => 'name' } );
 $graph->set_attributes ('graph', { linkbase => '123/' } );
 

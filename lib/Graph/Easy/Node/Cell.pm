@@ -7,10 +7,13 @@ package Graph::Easy::Node::Cell;
 
 use Graph::Easy::Node;
 
-@ISA = qw/Graph::Easy::Node/;
-$VERSION = '0.10';
-
 use strict;
+use warnings;
+
+use vars qw(@ISA $VERSION);
+
+@ISA = qw/Graph::Easy::Node/;
+$VERSION = '0.76';
 
 #############################################################################
 
@@ -18,17 +21,17 @@ sub _init
   {
   # generic init, override in subclasses
   my ($self,$args) = @_;
-  
+
   $self->{class} = '';
   $self->{name} = '';
-  
-  $self->{x} = 0;
-  $self->{y} = 0;
+
+  $self->{'x'} = 0;
+  $self->{'y'} = 0;
 
   # default: belongs to no node
   $self->{node} = undef;
 
-  foreach my $k (keys %$args)
+  foreach my $k (sort keys %$args)
     {
     if ($k !~ /^(node|graph|x|y)\z/)
       {
@@ -37,7 +40,7 @@ sub _init
       }
     $self->{$k} = $args->{$k};
     }
- 
+
   $self;
   }
 
@@ -113,7 +116,7 @@ You should not need to use this class directly.
 
 	$last_error = $cell->error();
 
-	$cvt->error($error);			# set new messags
+	$cvt->error($error);			# set new messages
 	$cvt->error('');			# clear error
 
 Returns the last error message, or '' for no error.

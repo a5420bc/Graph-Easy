@@ -6,29 +6,32 @@
 
 package Graph::Easy::Node;
 
-$VERSION = '0.38';
+$VERSION = '0.76';
 
 use Graph::Easy::Base;
 use Graph::Easy::Attributes;
 @ISA = qw/Graph::Easy::Base/;
 
+use Graph::Easy::Util qw(ord_values);
+
 # to map "arrow-shape" to "arrowshape"
 my $att_aliases;
 
 use strict;
+use warnings;
 use constant isa_cell => 0;
 
 sub _init
   {
   # Generic init routine, to be overridden in subclasses.
   my ($self,$args) = @_;
-  
+
   $self->{name} = 'Node #' . $self->{id};
-  
+
   $self->{att} = { };
   $self->{class} = 'node';		# default class
 
-  foreach my $k (keys %$args)
+  foreach my $k (sort keys %$args)
     {
     if ($k !~ /^(label|name)\z/)
       {
@@ -39,21 +42,21 @@ sub _init
     $self->{att}->{$k} = $args->{$k} if $k eq 'label';
     }
 
-  # These are undef (to save memory) until needed: 
+  # These are undef (to save memory) until needed:
   #  $self->{children} = {};
   #  $self->{dx} = 0;		# relative to no other node
   #  $self->{dy} = 0;
   #  $self->{origin} = undef;	# parent node (for relative placement)
   #  $self->{group} = undef;
   #  $self->{parent} = $graph or $group;
-  # Mark as not yet laid out: 
+  # Mark as not yet laid out:
   #  $self->{x} = 0;
   #  $self->{y} = 0;
-  
+
   $self;
   }
 
-my $merged_borders = 
+my $merged_borders =
   {
     'dotteddashed' => 'dot-dash',
     'dasheddotted' => 'dot-dash',
@@ -90,7 +93,7 @@ sub _merge_borders
 
   $one = 'none' unless $one;
   $two = 'none' unless $two;
-  
+
   # "nonenone" => "none" or "dotteddotted" => "dotted"
   return $one if $one eq $two;
 
@@ -142,9 +145,9 @@ sub _border_styles
   # already computed values?
   return if defined $cache->{left_border};
 
-  $cache->{left_border} = $border; 
+  $cache->{left_border} = $border;
   $cache->{top_border} = $border;
-  $cache->{right_border} = $border; 
+  $cache->{right_border} = $border;
   $cache->{bottom_border} = $border;
 
   return unless $collapse;
@@ -166,7 +169,7 @@ sub _border_styles
   # Draw border on A (left), and C (left):
   #
   #    +---+
-  #  B | A | C 
+  #  B | A | C
   #    +---+
 
   # Ditto, plus C's border:
@@ -196,14 +199,14 @@ sub _border_styles
   my @where = ('left', 'top', 'right', 'bottom');
   # need to swap arguments to _collapse_borders()?
   my @swapem = (0, 0, 1, 1);
- 
+
   for my $other ($left, $top, $right, $bottom)
     {
     my $side = shift @where;
     my $swap = shift @swapem;
-  
+
     # see if we have a (visible) neighbour on the left side
-    if (ref($other) && 
+    if (ref($other) &&
       !$other->isa('Graph::Easy::Edge') &&
       !$other->isa_cell() &&
       !$other->isa('Graph::Easy::Node::Empty'))
@@ -251,7 +254,7 @@ sub _correct_size
     my $shape = $self->attribute('pointshape');
     if ($style eq 'invisible' || $shape eq 'invisible')
       {
-      $self->{w} = 0; $self->{h} = 0; return; 
+      $self->{w} = 0; $self->{h} = 0; return;
       }
     }
   elsif ($shape eq 'invisible')
@@ -314,7 +317,7 @@ sub _unplace
     } # end handling multi-celled node
 
   # unplace all edges leading to/from this node, too:
-  for my $e (values %{$self->{edges}})
+  for my $e (ord_values ( $self->{edges} ))
     {
     $e->_unplace($cells);
     }
@@ -332,7 +335,7 @@ sub _mark_as_placed
 
   delete $self->{_todo};
 
-  for my $child (values %{$self->{children}})
+  for my $child (ord_values ( $self->{children} ))
     {
     $child->_mark_as_placed();
     }
@@ -350,7 +353,7 @@ sub _place_children
 
   print STDERR "# placing children of $self->{name} based on $x,$y\n" if $self->{debug};
 
-  for my $child (values %{$self->{children}})
+  for my $child (ord_values ( $self->{children} ))
     {
     # compute place of children (depending on whether we are multicelled or not)
 
@@ -376,7 +379,7 @@ sub _place
   # store our position if we are the first node in that rank
   my $r = abs($self->{rank} || 0);
   my $what = $parent->{_rank_coord} || 'x';	# 'x' or 'y'
-  $parent->{_rank_pos}->{ $r } = $self->{$what} 
+  $parent->{_rank_pos}->{ $r } = $self->{$what}
     unless defined $parent->{_rank_pos}->{ $r };
 
   # a multi-celled node will be stored like this:
@@ -399,7 +402,7 @@ sub _place
         # We might even get away with creating only one filler cell
         # although then its "x" and "y" values would be "wrong".
 
-        my $filler = 
+        my $filler =
 	  Graph::Easy::Node::Cell->new ( node => $self, x => $sx, y => $sy );
         $cells->{"$sx,$sy"} = $filler;
         }
@@ -409,7 +412,7 @@ sub _place
   $self->_update_boundaries($parent);
 
   1;					# did place us
-  } 
+  }
 
 sub _check_place
   {
@@ -444,7 +447,7 @@ sub _do_place
   # Tries to place the node at position ($x,$y) by checking that
   # $cells->{"$x,$y"} is still free. If the node belongs to a cluster,
   # checks all nodes of the cluster (and when all of them can be
-  # placed simultanously, does so).
+  # placed simultaneously, does so).
   # Returns true if the operation succeeded, otherwise false.
   my ($self,$x,$y,$parent) = @_;
 
@@ -561,10 +564,10 @@ sub _wrapped_label
 
   # generate the align array
   my @aligns;
-  my $al = substr($align,0,1); 
+  my $al = substr($align,0,1);
   for my $i (0.. scalar @lines)
     {
-    push @aligns, $al; 
+    push @aligns, $al;
     }
   # cache the result to avoid costly recomputation
   $self->{cache}->{label} = [ \@lines, \@aligns ];
@@ -600,7 +603,7 @@ sub _aligned_label
     $part =~ s/\s+\z//;			# remove spaces at end
     $a =~ s/\\//;			# \n => n
     $a = $al if $a eq 'n';
-    
+
     push @lines, $part;
     push @aligns, $last_align;
 
@@ -626,10 +629,10 @@ my $remap = {
     columns => undef,
     fill => 'background',
     origin => undef,
-    offset => undef, 
+    offset => undef,
     pointstyle => undef,
     pointshape => undef,
-    rows => undef, 
+    rows => undef,
     size => undef,
     shape => undef,
     },
@@ -738,7 +741,7 @@ sub _label_as_html
         while ($line =~ /[BOSUCI]<[^<>]+>/)
       }
     else
-      { 
+      {
       $line =~ s/&/&amp;/g;			# quote &
       $line =~ s/>/&gt;/g;			# quote >
       $line =~ s/</&lt;/g;			# quote <
@@ -752,7 +755,7 @@ sub _label_as_html
 
     $i++;					# next line
     }
-  $name =~ s/^<br>//;				# remove first <br> 
+  $name =~ s/^<br>//;				# remove first <br>
 
   ($name, $switch_to_center);
   }
@@ -818,7 +821,7 @@ sub as_html
   my $c = $class; $c =~ s/\./_/g;	# node.city => node_city
 
   my $html = " <$taga colspan=$cs rowspan=$rs##class####style##";
-   
+
   my $title = $self->title();
   $title =~ s/'/&#27;/g;			# replace quotation marks
 
@@ -839,13 +842,13 @@ sub as_html
     $name = $self->label();
     $name =~ s/\s/\+/g;				# space
     $name =~ s/'/%27/g;				# replace quotation marks
-    $name =~ s/[\x0d\x0a]//g;			# remove 0x0d0x0a and similiar
-    my $t = $title; $t = $name if $t eq ''; 
+    $name =~ s/[\x0d\x0a]//g;			# remove 0x0d0x0a and similar
+    my $t = $title; $t = $name if $t eq '';
     $name = "<img src='$name' alt='$t' title='$t' border='0' />";
     }
   else
     {
-    ($name,$switch_to_center) = $self->_label_as_html(); 
+    ($name,$switch_to_center) = $self->_label_as_html();
     }
 
   # if the label is "", the link wouldn't be clickable
@@ -887,7 +890,7 @@ sub as_html
     # set the fill on the inner part, but the background and no border on the <td>:
     my $inner_style = '';
     my $fill = $self->color_attribute('fill');
-    $inner_style = 'background:' . $fill if $fill; 
+    $inner_style = 'background:' . $fill if $fill;
     $inner_style .= ';border:' . $out->{border} if $out->{border};
     $inner_style =~ s/;\s?\z$//;				# remove '; ' at end
 
@@ -952,7 +955,7 @@ sub as_html
   # "shape: none;" or point means no border, and background instead fill color
   if ($shape =~ /^(point|none)\z/)
     {
-    $out->{background} = $self->color_attribute('background'); 
+    $out->{background} = $self->color_attribute('background');
     $out->{border} = 'none';
     }
 
@@ -1066,7 +1069,7 @@ sub _parent_flow_absolute
 
   return unless defined $flow;
 
-  # in case of relative flow at parent, convert to absolute (right: east, left: west etc) 
+  # in case of relative flow at parent, convert to absolute (right: east, left: west etc)
   # so that "graph { flow: left; }" results in a westward flow
   my $f = $p_flow->{$flow}; $f = $flow unless defined $f;
   $f;
@@ -1098,11 +1101,11 @@ sub flow
   return $cache->{flow} = $flow if defined $flow && $flow =~ /^(0|90|180|270)\z/;
   return $cache->{flow} = Graph::Easy->_direction_as_number($flow)
     if defined $flow && $flow =~ /^(south|north|east|west|up|down)\z/;
-  
+
   # for relative flows, compute the incoming flow as base flow
 
   # check all edges
-  for my $e (values %{$self->{edges}})
+  for my $e (ord_values ( $self->{edges} ))
     {
     # only count incoming edges
     next unless $e->{from} != $self && $e->{to} == $self;
@@ -1116,7 +1119,7 @@ sub flow
   if (!defined $in)
     {
     # check all predecessors
-    for my $e (values %{$self->{edges}})
+    for my $e (ord_values ( $self->{edges} ))
       {
       my $pre = $e->{from};
       $pre = $e->{to} if $e->{bidirectional};
@@ -1201,7 +1204,7 @@ sub _grow
   # count of outgoing edges
   my $outgoing = 0;
 
-  for my $e (values %{$self->{edges}})
+  for my $e (ord_values ( $self->{edges} ))
     {
     # count outgoing edges
     $outgoing++ if $e->{from} == $self;
@@ -1225,7 +1228,7 @@ sub _grow
 	    {
 	    # mark the bit in the vector
 	    # limit to four digits
-	    $nr = 9999 if abs($nr) > 9999; 
+	    $nr = 9999 if abs($nr) > 9999;
 
 	    # if slot was not used yet, count it
 	    $portnr->{$side} ++ if vec($vec->{$side}, $nr, 1) == 0x0;
@@ -1248,7 +1251,7 @@ sub _grow
       } # end for start/end port
     } # end for all edges
 
-  for my $e (values %{$self->{edges}})
+  for my $e (ord_values ( $self->{edges} ))
     {
     # the loop above will count all self-loops twice when they are
     # unrestricted. So subtract these again. Restricted self-loops
@@ -1264,7 +1267,7 @@ sub _grow
     $self->_calc_size();
     return $self;
     }
- 
+
   my $need = {};
   my $free = {};
   for my $side (qw/north south east west/)
@@ -1280,13 +1283,13 @@ sub _grow
     }
   # now $need contains for each side the absolute min. number of ports we need
 
-#  use Data::Dumper; 
+#  use Data::Dumper;
 #  print STDERR "# port contraints for $self->{name}:\n";
 #  print STDERR "# count: ", Dumper($cnt), "# max: ", Dumper($max),"\n";
 #  print STDERR "# ports: ", Dumper($portnr),"\n";
 #  print STDERR "# need : ", Dumper($need),"\n";
 #  print STDERR "# free : ", Dumper($free),"\n";
- 
+
   # calculate min. size in X and Y direction
   my $min_x = $need->{north}; $min_x = $need->{south} if $need->{south} > $min_x;
   my $min_y = $need->{west}; $min_y = $need->{east} if $need->{east} > $min_y;
@@ -1327,7 +1330,7 @@ sub _grow
       # if this is a sink node, grow it more by ignoring free ports on the front side
       next if $outgoing == 0 && $front_side eq $side;
       $free_ports += 1 + int(($self->{cx} - $cnt->{$side} - $portnr->{$side}) / 2);
-      }     
+      }
     for my $side (qw/east west/)
       {
       # if this is a sink node, grow it more by ignoring free ports on the front side
@@ -1368,7 +1371,7 @@ sub _un_escape
   # replace \N, \G, \T, \H and \E (depending on type)
   # if $label is false, also replace \L with the label
   my ($self, $txt, $do_label) = @_;
- 
+
   # for edges:
   if (exists $self->{edge})
     {
@@ -1433,7 +1436,7 @@ sub title
       if ($autotitle eq 'label')
         {
         $title = $self->{name};				# fallback to name
-        # defined to avoid overriding "name" with the non-existant label attribute
+        # defined to avoid overriding "name" with the non-existent label attribute
 	# do not use label() here, but the "raw" label of the edge:
         my $label = $self->label(); $title = $label if defined $label;
         }
@@ -1464,7 +1467,7 @@ sub label
   my $label = $self->{att}->{label};
   $label = $self->attribute('label') unless defined $label;
 
-  # for autosplit nodes, use their auto-label first (unless already got 
+  # for autosplit nodes, use their auto-label first (unless already got
   # a label from the class):
   $label = $self->{autosplit_label} unless defined $label;
   $label = $self->{name} unless defined $label;
@@ -1477,7 +1480,7 @@ sub label
     if ($len ne '')
       {
       # allow the old format (pre v0.49), too: "name,12" => 12
-      $len =~ s/^name\s*,\s*//;			
+      $len =~ s/^name\s*,\s*//;
       # restrict to sane values
       $len = abs($len || 0); $len = 99999 if $len > 99999;
       if (length($label) > $len)
@@ -1626,7 +1629,7 @@ sub edges_to
   return unless ref $self->{graph};
 
   my @edges;
-  for my $edge (values %{$self->{edges}})
+  for my $edge (ord_values ( $self->{edges} ))
     {
     push @edges, $edge if $edge->{from} == $self && $edge->{to} == $other;
     }
@@ -1645,18 +1648,18 @@ sub edges_at_port
   $self->_croak('port not defined') unless defined $port;
 
   my @edges;
-  for my $e (values %{$self->{edges}})
+  for my $e (ord_values ( $self->{edges} ))
     {
     # skip edges ending here if we look at start
     next if $e->{to} eq $self && $attr eq 'start';
     # skip edges starting here if we look at end
     next if $e->{from} eq $self && $attr eq 'end';
 
-    my ($s_p,@ss_p) = $e->port($attr);	
+    my ($s_p,@ss_p) = $e->port($attr);
     next unless defined $s_p;
 
     # same side and same port number?
-    push @edges, $e 
+    push @edges, $e
       if $s_p eq $side && @ss_p == 1 && $ss_p[0] eq $port;
     }
 
@@ -1669,7 +1672,7 @@ sub shared_edges
   my ($self) = @_;
 
   my @edges;
-  for my $e (values %{$self->{edges}})
+  for my $e (ord_values ( $self->{edges} ))
     {
     my ($s_p,@ss_p) = $e->port('start');
     push @edges, $e if defined $s_p;
@@ -1698,7 +1701,7 @@ sub nodes_sharing_start
     $nodes->{ $to->{name} } = $to;
     }
 
-  (values %$nodes);
+  return (ord_values $nodes);
   }
 
 sub nodes_sharing_end
@@ -1720,7 +1723,7 @@ sub nodes_sharing_end
     $nodes->{ $from->{name} } = $from;
     }
 
-  (values %$nodes);
+  return (ord_values $nodes);
   }
 
 sub incoming
@@ -1734,7 +1737,7 @@ sub incoming
   if (!wantarray)
     {
     my $count = 0;
-    for my $edge (values %{$self->{edges}})
+    for my $edge (ord_values ( $self->{edges} ))
       {
       $count++ if $edge->{to} == $self;
       }
@@ -1742,7 +1745,7 @@ sub incoming
     }
 
   my @edges;
-  for my $edge (values %{$self->{edges}})
+  for my $edge (ord_values ( $self->{edges} ))
     {
     push @edges, $edge if $edge->{to} == $self;
     }
@@ -1760,7 +1763,7 @@ sub outgoing
   if (!wantarray)
     {
     my $count = 0;
-    for my $edge (values %{$self->{edges}})
+    for my $edge (ord_values ( $self->{edges} ))
       {
       $count++ if $edge->{from} == $self;
       }
@@ -1768,7 +1771,7 @@ sub outgoing
     }
 
   my @edges;
-  for my $edge (values %{$self->{edges}})
+  for my $edge (ord_values ( $self->{edges} ))
     {
     push @edges, $edge if $edge->{from} == $self;
     }
@@ -1783,9 +1786,9 @@ sub connections
   return 0 unless defined $self->{graph};
 
   # We need to count the connections, because "[A]->[A]" creates
-  # two connections on "A", but only one edge! 
+  # two connections on "A", but only one edge!
   my $con = 0;
-  for my $edge (values %{$self->{edges}})
+  for my $edge (ord_values ( $self->{edges} ))
     {
     $con ++ if $edge->{to} == $self;
     $con ++ if $edge->{from} == $self;
@@ -1801,13 +1804,16 @@ sub edges
   # no graph, no dice
   return unless ref $self->{graph};
 
-  wantarray ? values %{$self->{edges}} : scalar keys %{$self->{edges}};
+  return (wantarray
+      ? ord_values ( $self->{edges} )
+      : scalar keys %{$self->{edges}}
+  );
   }
 
 sub sorted_successors
   {
   # return successors of the node sorted by their chain value
-  # (e.g. successors with more successors first) 
+  # (e.g. successors with more successors first)
   my $self = shift;
 
   my @suc = sort {
@@ -1825,12 +1831,12 @@ sub successors
   return () unless defined $self->{graph};
 
   my %suc;
-  for my $edge (values %{$self->{edges}})
+  for my $edge (ord_values ( $self->{edges} ))
     {
     next unless $edge->{from} == $self;
     $suc{$edge->{to}->{id}} = $edge->{to};	# weed out doubles
     }
-  values %suc;
+    return ord_values( \%suc );
   }
 
 sub predecessors
@@ -1841,12 +1847,12 @@ sub predecessors
   return () unless defined $self->{graph};
 
   my %pre;
-  for my $edge (values %{$self->{edges}})
+  for my $edge (ord_values ( $self->{edges} ))
     {
     next unless $edge->{to} == $self;
     $pre{$edge->{from}->{id}} = $edge->{from};	# weed out doubles
     }
-  values %pre;
+  return ord_values(\%pre);
   }
 
 sub has_predecessors
@@ -1856,7 +1862,7 @@ sub has_predecessors
 
   return undef unless defined $self->{graph};
 
-  for my $edge (values %{$self->{edges}})
+  for my $edge (ord_values ( $self->{edges} ))
     {
     return 1 if $edge->{to} == $self;		# found one
     }
@@ -1870,9 +1876,9 @@ sub has_as_predecessor
 
   return () unless defined $self->{graph};
 
-  for my $edge (values %{$self->{edges}})
+  for my $edge (ord_values ( $self->{edges} ))
     {
-    return 1 if 
+    return 1 if
 	$edge->{to} == $self && $edge->{from} == $other;	# found one
     }
   0;						# found none
@@ -1885,7 +1891,7 @@ sub has_as_successor
 
   return () unless defined $self->{graph};
 
-  for my $edge (values %{$self->{edges}})
+  for my $edge (ord_values ( $self->{edges} ))
     {
     return 1 if
 	$edge->{from} == $self && $edge->{to} == $other;	# found one
@@ -1956,7 +1962,7 @@ sub find_grandparent
     {
     $cur = $cur->{origin};
     }
-  
+
   $cur;
   }
 
@@ -2007,7 +2013,7 @@ sub set_attribute
   my $val = Graph::Easy->unquote_attribute($class,$name,$v);
 
   my $g = $self->{graph};
-  
+
   $g->{score} = undef if $g;	# invalidate layout to force a new layout
 
   my $strict = 0; $strict = $g->{strict} if $g;
@@ -2065,7 +2071,7 @@ sub set_attribute
       # if it doesn't exist, add it
       my $org = $self->{graph}->add_node($val);
       $self->relative_to($org);
-  
+
       # set the attributes, too, so get_attribute('origin') works, too:
       $self->{att}->{origin} = $org->{name};
       }
@@ -2097,7 +2103,7 @@ sub set_attributes
   {
   my ($self, $atr, $index) = @_;
 
-  foreach my $n (keys %$atr)
+  foreach my $n (sort keys %$atr)
     {
     my $val = $atr->{$n};
     $val = $val->[$index] if ref($val) eq 'ARRAY' && defined $index;
@@ -2144,7 +2150,7 @@ sub group
 sub add_to_group
   {
   my ($self,$group) = @_;
- 
+
   my $graph = $self->{graph};				# shortcut
 
   # delete from old group if nec.
@@ -2189,7 +2195,7 @@ sub _update_boundaries
   $parent->{cache} = {} unless ref($parent->{cache});
 
   my $cache = $parent->{cache};
-  
+
   $cache->{min_x} = $x if !defined $cache->{min_x} || $x < $cache->{min_x};
   $cache->{min_y} = $y if !defined $cache->{min_y} || $y < $cache->{min_y};
 
@@ -2202,7 +2208,7 @@ sub _update_boundaries
     {
     my $n = $self->{name}; $n = $self unless defined $n;
     print STDERR "Update boundaries for $n (parent $parent) at $x, $y\n";
-  
+
     print STDERR "Boundaries are now: " .
 		 "$cache->{min_x},$cache->{min_y} => $cache->{max_x},$cache->{max_y}\n";
     }
@@ -2478,7 +2484,7 @@ Return a hash with the given text-style properties, aka 'underline', 'bold' etc.
 
 =head2 find_grandparent()
 
-	my $grandpa = $node->find_grandparent(); 
+	my $grandpa = $node->find_grandparent();
 
 For a node that has no origin (is not relative to another), returns
 C<$node>. For all others, follows the chain of origin back until
@@ -2692,7 +2698,7 @@ Returns all nodes (as objects) that we are linking to.
 	my @suc = $node->sorted_successors();
 
 Return successors of the node sorted by their chain value
-(e.g. successors with more successors first). 
+(e.g. successors with more successors first).
 
 =head2 has_as_successor()
 
@@ -2798,7 +2804,7 @@ Sets itself relativ to C<$parent> with the offset C<$dx,$dy>.
 
 	my $shape = $node->shape();
 
-Returns the shape of the node as string, defaulting to 'rect'. 
+Returns the shape of the node as string, defaulting to 'rect'.
 
 =head2 angle()
 
@@ -2837,7 +2843,7 @@ Example:
 	  {
 	  my $self = shift;
 
-	  ' ' . 'onmouseover="alert(\'' . $self->name() . '\');"'; 
+	  ' ' . 'onmouseover="alert(\'' . $self->name() . '\');"';
 	  }
 
 	1;

@@ -5,9 +5,10 @@
 
 package Graph::Easy::Base;
 
-$VERSION = '0.12';
+$VERSION = '0.76';
 
 use strict;
+use warnings;
 
 #############################################################################
 
@@ -29,7 +30,7 @@ sub new
   my $args = $_[0];
   $args = { name => $_[0] } if ref($args) ne 'HASH' && @_ == 1;
   $args = { @_ } if ref($args) ne 'HASH' && @_ > 1;
- 
+
   $self->_init($args);
   }
 
@@ -37,16 +38,16 @@ sub _init
   {
   # Generic init routine, to be overriden in subclasses.
   my ($self,$args) = @_;
-  
+
   $self;
   }
 
 sub self
   {
   my $self = shift;
-  
+
   $self;
-  }  
+  }
 
 #############################################################################
 
@@ -107,7 +108,7 @@ sub error_as_html
   $msg =~ s/>/&gt;/g;
   $msg =~ s/"/&quot;/g;
 
-  $msg; 
+  $msg;
   }
 
 sub catch_messages
@@ -178,7 +179,7 @@ sub catch_errors
 
 sub warnings
   {
-  # return all warnings that occured after catch_messages(1)
+  # return all warnings that occurred after catch_messages(1)
   my $self = shift;
 
   @{$self->{_warnings}};
@@ -186,7 +187,7 @@ sub warnings
 
 sub errors
   {
-  # return all errors that occured after catch_messages(1)
+  # return all errors that occurred after catch_messages(1)
   my $self = shift;
 
   @{$self->{_errors}};
@@ -223,7 +224,7 @@ sub _croak
     Carp::croak($msg);
     }
   }
- 
+
 #############################################################################
 # class management
 
@@ -245,7 +246,7 @@ sub sub_class
 
   return $1 if defined $1;
 
-  return $self->{cache}->{subclass} if defined $self->{cache}->{subclass}; 
+  return $self->{cache}->{subclass} if defined $self->{cache}->{subclass};
 
   # Subclass not defined, so check our base class for a possible set class
   # attribute and return this:
@@ -337,7 +338,7 @@ Create a new object, and call C<_init()> on it.
 
 	$last_error = $object->error();
 
-	$object->error($error);			# set new messags
+	$object->error($error);			# set new messages
 	$object->error('');			# clear the error
 
 Returns the last error message, or '' for no error.
@@ -421,7 +422,7 @@ A true parameter is equivalent to:
 
 	$object->catch_warnings(1);
 	$object->catch_errors(1);
-	
+
 See also: L<catch_warnings()> and L<catch_errors()> as well as
 L<errors()> and L<warnings()>.
 
@@ -429,14 +430,14 @@ L<errors()> and L<warnings()>.
 
 	my @errors = $object->errors();
 
-Return all error messages that occured after L<catch_messages()> was
+Return all error messages that occurred after L<catch_messages()> was
 called.
 
 =head2 warnings()
 
 	my @warnings = $object->warnings();
 
-Return all warning messages that occured after L<catch_messages()>
+Return all warning messages that occurred after L<catch_messages()>
 or L<catch_errors()> was called.
 
 =head2 self()

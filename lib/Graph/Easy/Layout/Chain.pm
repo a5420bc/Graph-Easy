@@ -7,10 +7,13 @@
 package Graph::Easy::Layout::Chain;
 
 use Graph::Easy::Base;
-$VERSION = '0.09';
+$VERSION = '0.76';
 @ISA = qw/Graph::Easy::Base/;
 
 use strict;
+use warnings;
+
+use Graph::Easy::Util qw(ord_values);
 
 use constant {
   _ACTION_NODE  => 0, # place node somewhere
@@ -25,8 +28,8 @@ sub _init
   {
   # Generic init routine, to be overriden in subclasses.
   my ($self,$args) = @_;
-  
-  foreach my $k (keys %$args)
+
+  foreach my $k (sort keys %$args)
     {
     if ($k !~ /^(start|graph)\z/)
       {
@@ -35,9 +38,9 @@ sub _init
       }
     $self->{$k} = $args->{$k};
     }
- 
+
   $self->{end} = $self->{start};
- 
+
   # store chain at node (to lookup node => chain info)
   $self->{start}->{_chain} = $self;
   $self->{start}->{_next} = undef;
@@ -75,7 +78,7 @@ sub add_node
   # store chain at node (to lookup node => chain info)
   $node->{_chain} = $self;
   $node->{_next} = undef;
-  
+
   $self->{len} ++;
 
   $self;
@@ -121,7 +124,7 @@ sub layout
   # them.
   my ($self, $edge) = @_;
 
-  # prevent doing it twice 
+  # prevent doing it twice
   return [] if $self->{_done}; $self->{_done} = 1;
 
   my @TODO = ();
@@ -175,7 +178,7 @@ sub layout
     {
     # first do edges going from P to N
     #for my $e (sort { $a->{to}->{name} cmp $b->{to}->{name} } values %{$pre->{edges}})
-    for my $e (values %{$pre->{edges}})
+    for my $e (ord_values ( $pre->{edges}))
       {
       # skip selfloops and backward links, these will be done later
       next if $e->{to} != $n;
@@ -212,7 +215,7 @@ sub layout
 
     # gather all edges starting at $n, but do the ones with a flow first
 #    for my $e (sort { $a->{to}->{name} cmp $b->{to}->{name} } values %{$n->{edges}})
-    for my $e (values %{$n->{edges}})
+    for my $e (ord_values ( $n->{edges}))
       {
       # skip selfloops, these will be done later
       next if $e->{to} == $n;
@@ -260,7 +263,7 @@ sub layout
 
 #    use Data::Dumper; print STDERR "count\n", Dumper(@count);
 
-    # do edges, shortest first 
+    # do edges, shortest first
     for my $e (sort { $a->[0] <=> $b->[0] } @edges)
       {
       push @TODO, [ _ACTION_TRACE, $e->[1] ];
@@ -269,18 +272,18 @@ sub layout
 
     $n = $n->{_next};
     }
- 
+
   # also do all selfloops on $n
   $n = $self->{start};
   while (defined $n)
     {
 #    for my $e (sort { $a->{to}->{name} cmp $b->{to}->{name} } values %{$n->{edges}})
-    for my $e (values %{$n->{edges}})
+    for my $e (ord_values $n->{edges})
       {
       next unless exists $e->{_todo};
 
 #      print STDERR "# $e->{from}->{name} to $e->{to}->{name} on $n->{name}\n";
-#      print STDERR "# ne $e->{to} $n $e->{id}\n" 
+#      print STDERR "# ne $e->{to} $n $e->{id}\n"
 #       if $e->{from} != $n || $e->{to} != $n;		# no selfloop?
 
       next if $e->{from} != $n || $e->{to} != $n;	# no selfloop?
@@ -332,7 +335,7 @@ sub layout
       }
     $n = $n->{_next};
     }
- 
+
   \@TODO;
   }
 
@@ -365,14 +368,14 @@ sub merge
 
   print STDERR "# panik: ", join(" \n",caller()),"\n" if !defined $other;
 
-  print STDERR 
+  print STDERR
    "# Merging chain $other->{id} (len $other->{len}) into $self->{id} (len $self->{len})\n"
      if $g->{debug};
 
-  print STDERR 
+  print STDERR
    "# Merging from $where->{name} onwards\n"
      if $g->{debug} && ref($where);
- 
+
   # cannot merge myself into myself (without allocating infinitely memory)
   return if $self == $other;
 
@@ -380,7 +383,7 @@ sub merge
   $where = undef unless ref($where) && exists $where->{_chain} && $where->{_chain} == $other;
 
   $where = $other->{start} unless defined $where;
-  
+
   # make all nodes from chain #1 belong to it (to detect loops)
   my $n = $self->{start};
   while (defined $n)
@@ -519,7 +522,7 @@ Return last node in the chain.
 
 	my $todo = $chain->layout();
 
-Return an action stack as array ref, containing the nec. actions to 
+Return an action stack as array ref, containing the nec. actions to
 layout the chain (nodes, plus interlinks in the chain).
 
 Will recursively traverse all chains linked to this chain.
@@ -531,7 +534,7 @@ Will recursively traverse all chains linked to this chain.
 
 Merge the other chain into ourselves, adding its nodes at our end.
 The other chain is emptied and must be deleted by the caller.
-  
+
 If C<$where> is defined and a member of C<$other_chain>, absorb only the
 nodes from C<$where> onwards, instead of all of them.
 
@@ -539,7 +542,7 @@ nodes from C<$where> onwards, instead of all of them.
 
 	$last_error = $node->error();
 
-	$node->error($error);			# set new messags
+	$node->error($error);			# set new messages
 	$node->error('');			# clear error
 
 Returns the last error message, or '' for no error.

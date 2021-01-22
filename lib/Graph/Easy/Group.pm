@@ -10,9 +10,12 @@ use Graph::Easy;
 use Scalar::Util qw/weaken/;
 
 @ISA = qw/Graph::Easy::Node Graph::Easy/;
-$VERSION = '0.22';
+$VERSION = '0.76';
 
 use strict;
+use warnings;
+
+use Graph::Easy::Util qw(ord_values);
 
 #############################################################################
 
@@ -20,14 +23,14 @@ sub _init
   {
   # generic init, override in subclasses
   my ($self,$args) = @_;
-  
+
   $self->{name} = 'Group #'. $self->{id};
   $self->{class} = 'group';
   $self->{_cells} = {};				# the Group::Cell objects
 #  $self->{cx} = 1;
 #  $self->{cy} = 1;
 
-  foreach my $k (keys %$args)
+  foreach my $k (sort keys %$args)
     {
     if ($k !~ /^(graph|name)\z/)
       {
@@ -36,7 +39,7 @@ sub _init
       }
     $self->{$k} = $args->{$k};
     }
-  
+
   $self->{nodes} = {};
   $self->{groups} = {};
   $self->{att} = {};
@@ -51,7 +54,7 @@ sub nodes
   {
   my $self = shift;
 
-  wantarray ? ( values %{$self->{nodes}} ) : scalar keys %{$self->{nodes}};
+  wantarray ? ( ord_values ( $self->{nodes} ) ) : scalar keys %{$self->{nodes}};
   }
 
 sub edges
@@ -59,7 +62,7 @@ sub edges
   # edges leading from/to this group
   my $self = shift;
 
-  wantarray ? ( values %{$self->{edges}} ) : scalar keys %{$self->{edges}};
+  wantarray ? ( ord_values ( $self->{edges} ) ) : scalar keys %{$self->{edges}};
   }
 
 sub edges_within
@@ -67,7 +70,7 @@ sub edges_within
   # edges between nodes inside this group
   my $self = shift;
 
-  wantarray ? ( values %{$self->{edges_within}} ) : 
+  wantarray ? ( ord_values ( $self->{edges_within} ) ) :
 		scalar keys %{$self->{edges_within}};
   }
 
@@ -77,11 +80,11 @@ sub _groups_within
 
   no warnings 'recursion';
 
-  push @$cur, values %{$self->{groups}};
+  push @$cur, ord_values ( $self->{groups} );
 
   return if $level >= $max_level;
 
-  for my $g (values %{$self->{groups}})
+  for my $g (ord_values ( $self->{groups} ))
     {
     $g->_groups_within($level+1,$max_level, $cur) if scalar keys %{$g->{groups}} > 0;
     }
@@ -99,7 +102,7 @@ sub set_attribute
   if ($name eq 'nodeclass')
     {
     my $class = $self->{att}->{nodeclass};
-    for my $node (values %{ $self->{nodes} } )
+    for my $node (ord_values ( $self->{nodes} ) )
       {
       $node->sub_class($class);
       }
@@ -143,7 +146,7 @@ sub add_node
   $n->{att}->{group} = $self->{name};
 
   # Register the nodes and the edge with our graph object
-  # and weaken the references. Be carefull to not needlessly
+  # and weaken the references. Be careful to not needlessly
   # override and weaken again an already existing reference, this
   # is an O(N) operation in most Perl versions, and thus very slow.
 
@@ -159,7 +162,7 @@ sub add_member
   {
   # add a node or group to this group
   my ($self,$n) = @_;
- 
+
   if (!ref($n) || !$n->isa("Graph::Easy::Node"))
     {
     if (!ref($self->{graph}))
@@ -184,7 +187,7 @@ sub add_member
   $n->{att}->{group} = $self->{name};
 
   # Register the nodes and the edge with our graph object
-  # and weaken the references. Be carefull to not needlessly
+  # and weaken the references. Be careful to not needlessly
   # override and weaken again an already existing reference, this
   # is an O(N) operation in most Perl versions, and thus very slow.
 
@@ -215,7 +218,7 @@ sub del_member
     {
     # find all edges that mention this node and drop them from the group
     my $edges = $self->{edges_within};
-    for my $e (values %$edges)
+    for my $e (ord_values ( $edges))
       {
       delete $edges->{ $e->{id} } if $e->{from} == $n || $e->{to} == $n;
       }
@@ -235,7 +238,7 @@ sub del_node
 
   # find all edges that mention this node and drop them from the group
   my $edges = $self->{edges_within};
-  for my $e (values %$edges)
+  for my $e (ord_values ( $edges))
     {
     delete $edges->{ $e->{id} } if $e->{from} == $n || $e->{to} == $n;
     }
@@ -273,7 +276,7 @@ sub add_nodes
     $n->{group} = $self;
 
     # Register the nodes and the edge with our graph object
-    # and weaken the references. Be carefull to not needlessly
+    # and weaken the references. Be careful to not needlessly
     # override and weaken again an already existing reference, this
     # is an O(N) operation in most Perl versions, and thus very slow.
 
@@ -380,7 +383,7 @@ sub add_group
   $group->{graph} = $self->{graph};
   $group->{group} = $self;
   {
-    no warnings; # dont warn on already weak references
+    no warnings; # don't warn on already weak references
     weaken($group->{graph});
     weaken($group->{group});
   }
@@ -446,7 +449,7 @@ sub _find_label_cell
 
   my $lc;						# the label cell
 
-  for my $c (values %{$self->{_cells}})
+  for my $c (ord_values ( $self->{_cells} ))
     {
     # find a cell where to put the label
     next unless $c->{cell_class} =~ $match;
@@ -468,7 +471,7 @@ sub _find_label_cell
 	# find top-most, right-most cell
 	next if $lc->{x} > $c->{x} || $lc->{y} < $c->{y};
 	}
-      }  
+      }
     $lc = $c;
     }
 
@@ -477,16 +480,16 @@ sub _find_label_cell
     {
     my ($left, $right);
     # find left/right most coordinates
-    for my $c (values %{$self->{_cells}})
+    for my $c (ord_values ( $self->{_cells} ))
       {
       next if $c->{y} != $lc->{y};
-      $left = $c->{x} if !defined $left || $left > $c->{x};  
+      $left = $c->{x} if !defined $left || $left > $c->{x};
       $right = $c->{x} if !defined $right || $right < $c->{x};
       }
     my $center = int(($right - $left) / 2 + $left);
     my $min_dist;
     # find the cell mostly near the center in the found top-row
-    for my $c (values %{$self->{_cells}})
+    for my $c (ord_values ( $self->{_cells} ))
       {
       next if $c->{y} != $lc->{y};
       # squared to get rid of sign
@@ -525,11 +528,11 @@ sub _set_cell_types
   my ($self, $cells) = @_;
 
   # Set the right cell class for all of our cells:
-  for my $cell (values %{$self->{_cells}})
+  for my $cell (ord_values ( $self->{_cells} ))
     {
     $cell->_set_type($cells);
     }
- 
+
   $self;
   }
 
@@ -578,7 +581,7 @@ L<Graph::Easy::Node> for a list.
 
 	$last_error = $group->error();
 
-	$group->error($error);			# set new messags
+	$group->error($error);			# set new messages
 	$group->error('');			# clear error
 
 Returns the last error message, or '' for no error.
@@ -711,7 +714,7 @@ L<edges()>.
 
 Returns the contained groups of this group as L<Graph::Easy::Group> objects,
 in arbitrary order.
-  
+
 =head2 groups_within()
 
 	# equivalent to $group->groups():

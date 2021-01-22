@@ -6,7 +6,7 @@
 
 package Graph::Easy::Layout::Force;
 
-$VERSION = '0.01';
+$VERSION = '0.76';
 
 #############################################################################
 #############################################################################
@@ -14,6 +14,9 @@ $VERSION = '0.01';
 package Graph::Easy;
 
 use strict;
+use warnings;
+
+use Graph::Easy::Util qw(ord_values);
 
 sub _layout_force
   {
@@ -21,7 +24,7 @@ sub _layout_force
   # When things have settled, stop.
   my ($self) = @_;
 
-  # For each node, calculate the force actiing on it, seperated into two
+  # For each node, calculate the force acting on it, separated into two
   # components along the X and Y axis:
 
   # XXX TODO: replace with all contained nodes + groups
@@ -104,7 +107,7 @@ sub _layout_force
 
 	my $r = $dx * $dx + $dy * $dy;
 
-	$r = 0.01 if $r < 0.01;			# too small? 
+	$r = 0.01 if $r < 0.01;			# too small?
 	if ($r < 4)
 	  {
 	  # not too big
@@ -119,7 +122,7 @@ sub _layout_force
         }
 
       # for all edges connected at this node
-      for my $e (values %{$n->{edges}})
+      for my $e (ord_values ( $n->{edges} ))
 	{
 	# exclude self-loops
 	next if $e->{from} == $n && $e->{to} == $n;
@@ -135,7 +138,7 @@ sub _layout_force
 	my $dy = -($n->{y} - $n2->{y}) / 2;
 
 	print STDERR "# Spring force between $n->{name} and $n2->{name}: fx $dx, fy $dy\n";
-	$n->{_x_force} += $dx; 
+	$n->{_x_force} += $dx;
 	$n->{_y_force} += $dy;
 	}
 
@@ -152,7 +155,7 @@ sub _layout_force
 
       print STDERR "# $n->{name}: Final force: fx $n->{_x_force}, fy $n->{_y_force}\n";
 
-      $energy += $n->{_x_force} * $n->{_x_force} + $n->{_x_force} * $n->{_y_force}; 
+      $energy += $n->{_x_force} * $n->{_x_force} + $n->{_x_force} * $n->{_y_force};
 
       print STDERR "# Net energy: $energy\n";
       }
@@ -192,7 +195,7 @@ Graph::Easy::Layout::Force - Force-based layouter for Graph::Easy
 =head1 SYNOPSIS
 
 	use Graph::Easy;
-	
+
 	my $graph = Graph::Easy->new();
 
 	$graph->add_edge ('Bonn', 'Berlin');
@@ -204,7 +207,7 @@ Graph::Easy::Layout::Force - Force-based layouter for Graph::Easy
 	print $graph->as_ascii( );
 
 	# prints:
-	
+
 	#   +------------------------+
 	#   |                        v
 	# +------+     +-----+     +--------+

@@ -5,11 +5,12 @@
 
 package Graph::Easy::Parser::VCG;
 
-$VERSION = '0.06';
+$VERSION = '0.76';
 use Graph::Easy::Parser::Graphviz;
 @ISA = qw/Graph::Easy::Parser::Graphviz/;
 
 use strict;
+use warnings;
 use utf8;
 use constant NO_MULTIPLES => 1;
 use Encode qw/decode/;
@@ -28,7 +29,7 @@ my $vcg_color_by_name = {};
 
 my $vcg_colors = [
   white 	=> 'white',
-  blue  	=> 'blue',	
+  blue  	=> 'blue',
   red 		=> 'red',
   green		=> 'green',
   yellow	=> 'yellow',
@@ -127,7 +128,7 @@ sub _unquote
   # we need to use "[ ]" here, because "\s" also matches 0x0c, and
   # these color codes need to be kept intact:
   $name =~ s/^"[ ]*//; 		# remove left-over quotes
-  $name =~ s/[ ]*"\z//; 
+  $name =~ s/[ ]*"\z//;
 
   # unquote special chars
   $name =~ s/\\([\[\(\{\}\]\)#"])/$1/g;
@@ -233,7 +234,7 @@ sub _match_attributes
 
   my $qr_att = _match_single_attribute();
   my $qr_cmt = _match_multi_line_comment();
- 
+
   qr/\s*\{\s*((?:$qr_att|$qr_cmt)*)\s*\}/;
   }
 
@@ -274,7 +275,7 @@ sub _match_group_start
   }
 
 sub _clean_line
-  { 
+  {
   # do some cleanups on a line before handling it
   my ($self,$line) = @_;
 
@@ -338,12 +339,12 @@ sub _new_scope
     my $old_scope = $self->{scope_stack}->[-1];
 
     # make a copy of the old scope's attribtues
-    for my $t (keys %$old_scope)
+    for my $t (sort keys %$old_scope)
       {
       next if $t =~ /^_/;
       my $s = $old_scope->{$t};
       $scope->{$t} = {} unless ref $scope->{$t}; my $sc = $scope->{$t};
-      for my $k (keys %$s)
+      for my $k (sort keys %$s)
         {
         # skip things like "_is_group"
         $sc->{$k} = $s->{$k} unless $k =~ /^_/;
@@ -393,7 +394,7 @@ sub _build_match_stack
       if (@{$self->{scope_stack}} == 0)
         {
         print STDERR "# Parser: found main graph\n" if $self->{debug};
-	$self->{_vcg_graph_name} = 'unnamed'; 
+	$self->{_vcg_graph_name} = 'unnamed';
 	$self->_new_scope(1);
         }
       else
@@ -412,7 +413,7 @@ sub _build_match_stack
       my $self = shift;
 
       print STDERR "# Parser: found end of (sub-)graph\n" if $self->{debug};
-      
+
       my $scope = pop @{$self->{scope_stack}};
       return $self->parse_error(0) if !defined $scope;
 
@@ -500,7 +501,7 @@ sub _build_match_stack
       $scope->{$type} = {} unless ref $scope->{$type};
       my $s = $scope->{$type};
 
-      for my $k (keys %$att)
+      for my $k (sort keys %$att)
         {
         $s->{$k} = $att->{$k};
         }
@@ -511,7 +512,7 @@ sub _build_match_stack
 
   # remove multi line comments /* comment */
   $self->_register_handler( $qr_cmt, undef );
-  
+
   # remove single line comment // comment
   $self->_register_handler( qr/^\s*\/\/.*/, undef );
 
@@ -526,7 +527,7 @@ sub _new_node
 #  print STDERR "add_node $name\n";
 
   my $node = $graph->node($name);
- 
+
   if (!defined $node)
     {
     $node = $graph->add_node($name);		# add
@@ -534,7 +535,7 @@ sub _new_node
     # apply attributes from the current scope (only for new nodes)
     my $scope = $self->{scope_stack}->[-1];
     return $self->error("Scope stack is empty!") unless defined $scope;
-  
+
     my $is_group = $scope->{_is_group};
     delete $scope->{_is_group};
     $node->set_attributes($scope->{node});
@@ -754,7 +755,7 @@ my $vcg_remap = {
   # add all graph attributes to group, too
   my $group = $vcg_remap->{group};
   my $graph = $vcg_remap->{graph};
-  for my $k (keys %$graph)
+  for my $k (sort keys %$graph)
     {
     $group->{$k} = $graph->{$k};
     }
@@ -826,7 +827,7 @@ sub _textmode_from_vcg
   # remap "textmode: left_justify" to "align: left;"
   my ($graph, $name, $align) = @_;
 
-  $align =~ s/_.*//;	# left_justify => left	
+  $align =~ s/_.*//;	# left_justify => left
 
   ('align', lc($align));
   }
@@ -876,7 +877,7 @@ sub _port_sharing_from_vcg
   my ($graph, $name, $value) = @_;
 
   $value = ($value =~ /yes/i) ? 'yes' : 'no';
- 
+
   ('autojoin', $value, 'autosplit', $value);
   }
 
@@ -886,7 +887,7 @@ sub _inport_sharing_from_vcg
   my ($graph, $name, $value) = @_;
 
   $value = ($value =~ /yes/i) ? 'yes' : 'no';
- 
+
   ('autojoin', $value);
   }
 
@@ -896,7 +897,7 @@ sub _outport_sharing_from_vcg
   my ($graph, $name, $value) = @_;
 
   $value = ($value =~ /yes/i) ? 'yes' : 'no';
- 
+
   ('autosplit', $value);
   }
 
@@ -961,14 +962,14 @@ sub _remap_attributes
 #    use Data::Dumper; print Dumper($att);
 
   # handle the "colorentry 00" entries:
-  for my $key (keys %$att)
+  for my $key (sort keys %$att)
     {
     if ($key =~ /^colorentry\s+([0-9]{1,2})/)
       {
       # put the color into the current color map
       $self->_vcg_color_map_entry($1, $att->{$key});
       delete $att->{$key};
-      next; 
+      next;
       }
 
     # remap \fi065 to 'A'
@@ -1041,7 +1042,7 @@ in various formats.
 
 =head2 Output
 
-The output will be a L<Graph::Easy|Graph::Easy> object (unless overrriden
+The output will be a L<Graph::Easy|Graph::Easy> object (unless overridden
 with C<use_class()>), see the documentation for Graph::Easy what you can do
 with it.
 
@@ -1119,7 +1120,7 @@ with L<error()> when using the first calling style.
 
 	my $error = $parser->error();
 
-Returns the last error, or the empty string if no error occured.
+Returns the last error, or the empty string if no error occurred.
 
 =head2 parse_error()
 

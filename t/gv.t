@@ -4,6 +4,20 @@ use Test::More;
 use strict;
 use File::Spec;
 
+sub _write_utf8_file
+{
+    my ($out_path, $contents) = @_;
+
+    open my $out_fh, '>:encoding(utf8)', $out_path
+        or die "Cannot open '$out_path' for writing - $!";
+
+    print {$out_fh} $contents;
+
+    close($out_fh);
+
+    return;
+}
+
 # test graphviz (dot) file input => ASCII output
 # and back to as_txt() again
 
@@ -59,9 +73,9 @@ binmode (STDOUT, ':utf8') or die ("Cannot do binmode(':utf8') on STDOUT: $!");
 
 eval { require Test::Differences; };
 
-foreach my $f (sort { 
-  $a =~ /^(\d+)/; my $a1 = $1 || '1'; 
-  $b =~ /^(\d+)/; my $b1 = $1 || '1'; 
+foreach my $f (sort {
+  $a =~ /^(\d+)/; my $a1 = $1 || '1';
+  $b =~ /^(\d+)/; my $b1 = $1 || '1';
   $a1 <=> $b1 || $a cmp $b;
   } @files)
   {
@@ -75,7 +89,7 @@ foreach my $f (sort {
     # look like Graph::Easy text to the normal parser, which then fails
     $parser = $dot_parser;
     }
-  
+
   next unless $f =~ /\.dot/;			# ignore anything else
 
   print "# at $f\n";
@@ -98,7 +112,8 @@ foreach my $f (sort {
   my $ascii = $graph->as_ascii();
 
   my $of = $f; $of =~ s/\.dot/\.txt/;
-  my $out = readfile(File::Spec->catfile('out','dot',$of));
+  my $out_path = File::Spec->catfile('out','dot',$of);
+  my $out = readfile($out_path);
   $out =~ s/(^|\n)#[^# ]{2}.*\n//g;		# remove comments
   $out =~ s/\n\n\z/\n/mg;			# remove empty lines
 
@@ -107,17 +122,21 @@ foreach my $f (sort {
 # print "should: $out\n";
 
   if (!
-    is ($ascii, $out, "from $f"))
-    {
-    if (defined $Test::Differences::VERSION)
+      is ($ascii, $out, "from $f"))
+  {
+      if ($ENV{__SHLOMIF__UPDATE_ME})
       {
-      Test::Differences::eq_or_diff ($ascii, $out);
+          _write_utf8_file($out_path, $ascii);
       }
-    else
+      if (defined $Test::Differences::VERSION)
       {
-      fail ("Test::Differences not installed");
+          Test::Differences::eq_or_diff ($ascii, $out);
       }
-    }
+      else
+      {
+          fail ("Test::Differences not installed");
+      }
+  }
 
   # if the txt output differes, read it in
   my $f_txt = File::Spec->catfile('txt','dot',$of);
@@ -128,18 +147,22 @@ foreach my $f (sort {
 
   $graph->debug(1);
 
- if (!
-   is ($graph->as_txt(), $txt, "$f as_txt"))
-   {
-   if (defined $Test::Differences::VERSION)
-     {
-     Test::Differences::eq_or_diff ($graph->as_txt(), $txt);
-     }
-   else
-     {
-     fail ("Test::Differences not installed");
-     }
-   }
+  if (!
+      is ($graph->as_txt(), $txt, "$f as_txt"))
+  {
+      if ($ENV{__SHLOMIF__UPDATE_ME})
+      {
+          _write_utf8_file($f_txt, scalar( $graph->as_txt() ));
+      }
+      if (defined $Test::Differences::VERSION)
+      {
+          Test::Differences::eq_or_diff ($graph->as_txt(), $txt);
+      }
+      else
+      {
+          fail ("Test::Differences not installed");
+      }
+  }
 
   # print a debug output
   my $debug = $ascii;

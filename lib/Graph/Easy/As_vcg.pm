@@ -5,7 +5,7 @@
 
 package Graph::Easy::As_vcg;
 
-$VERSION = '0.05';
+$VERSION = '0.76';
 
 #############################################################################
 #############################################################################
@@ -13,6 +13,7 @@ $VERSION = '0.05';
 package Graph::Easy;
 
 use strict;
+use warnings;
 
 my $vcg_remap = {
   node => {
@@ -20,7 +21,7 @@ my $vcg_remap = {
     autolabel => undef,
     autolink => undef,
     autotitle => undef,
-    background => undef, 
+    background => undef,
     basename => undef,
     class => undef,
     colorscheme => undef,
@@ -72,7 +73,7 @@ my $vcg_remap = {
     style => 'linestyle',
     textstyle => undef,
     textwrap => undef,
-    title => undef, 
+    title => undef,
     },
   graph => {
     align => \&_vcg_remap_align,
@@ -166,7 +167,7 @@ sub _class_attributes_as_vcg
   my $att = '';
   $class = '' if $class eq 'graph';
   $class .= '.' if $class ne '';
-  
+
   # create the attributes as text:
   for my $atr (sort keys %$a)
     {
@@ -189,7 +190,7 @@ sub _generate_vcg_edge
   my ($self, $e, $indent) = @_;
 
   # skip links from/to groups, these will be done later
-  return '' if 
+  return '' if
     $e->{from}->isa('Graph::Easy::Group') ||
     $e->{to}->isa('Graph::Easy::Group');
 
@@ -198,6 +199,8 @@ sub _generate_vcg_edge
   $e->{_p} = undef;				# mark as processed
   "  edge:$edge_att\n";				# return edge text
   }
+
+use Graph::Easy::Util qw(ord_values);
 
 sub _as_vcg
   {
@@ -208,7 +211,7 @@ sub _as_vcg
 
   # gather all edge classes to build the classname attribute from them:
   $self->{_vcg_edge_classes} = {};
-  for my $e (values %{$self->{edges}})
+  for my $e (ord_values ( $self->{edges} ))
     {
     my $class = $e->sub_class();
     $self->{_vcg_edge_classes}->{$class} = undef if defined $class && $class ne '';
@@ -270,7 +273,7 @@ sub _as_vcg
 
 #    # output group attributes first
 #    $txt .= "  subgraph \"cluster$group->{id}\" {\n${indent}label=\"$name\";\n";
-   
+
     # Make a copy of the attributes, including our class attributes:
     my $copy = {};
     my $attribs = $group->get_attributes();
@@ -298,7 +301,7 @@ sub _as_vcg
       $att .= "    $atr: $v\n";
       }
     $txt .= $att . "\n" if $att ne '';
- 
+
 #    # output nodes (w/ or w/o attributes) in that group
 #    for my $n ($group->sorted_nodes())
 #      {
@@ -308,7 +311,7 @@ sub _as_vcg
 #      }
 
 #    # output node connections in this group
-#    for my $e (values %{$group->{edges}})
+#    for my $e (ord_values ( $group->{edges} ))
 #      {
 #      next if exists $e->{_p};
 #      $txt .= $self->_generate_edge($e, $indent);
@@ -330,10 +333,10 @@ sub _as_vcg
       {
       $n->{_p} = undef;			# mark as processed
       $count++;
-      $txt .= "  node:" . $att . "\n"; 
+      $txt .= "  node:" . $att . "\n";
       }
     }
- 
+
   $txt .= "\n" if $count > 0;		# insert a newline
 
   my @nodes = $self->sorted_nodes();
@@ -362,15 +365,15 @@ sub _as_vcg
 
   # insert now edges between groups (clusters/subgraphs)
 
-#  foreach my $e (values %{$self->{edges}})
+#  foreach my $e (ord_values ( $self->{edges} ))
 #    {
-#    $txt .= $self->_generate_group_edge($e, '  ') 
+#    $txt .= $self->_generate_group_edge($e, '  ')
 #     if $e->{from}->isa('Graph::Easy::Group') ||
 #        $e->{to}->isa('Graph::Easy::Group');
 #    }
 
   # clean up
-  for my $n ( values %{$self->{nodes}}, values %{$self->{edges}})
+  for my $n ( ord_values ( $self->{nodes} ), ord_values ( $self->{edges} ))
     {
     delete $n->{_p};
     }
@@ -447,14 +450,14 @@ sub attributes_as_vcg
     delete $a->{dir};
     my ($n,$s) = Graph::Easy::_graphviz_remap_arrow_style(
 	$self,'', $self->attribute('arrowstyle'));
-    $a->{arrowhead} = $s; 
-    $a->{arrowtail} = $s; 
+    $a->{arrowhead} = $s;
+    $a->{arrowtail} = $s;
     }
   if ($self->{undirected})
     {
     delete $a->{dir};
-    $a->{arrowhead} = 'none'; 
-    $a->{arrowtail} = 'none'; 
+    $a->{arrowhead} = 'none';
+    $a->{arrowtail} = 'none';
     }
 
   # borderstyle: double:
@@ -485,7 +488,7 @@ sub attributes_as_vcg
 
     $a->{label} = $style;
     # for point-shaped invisible nodes, set height/width = 0
-    $a->{width} = 0, $a->{height} = 0 if $style eq '';  
+    $a->{width} = 0, $a->{height} = 0 if $style eq '';
     }
   if ($shape eq 'invisible')
     {
@@ -523,7 +526,7 @@ sub as_vcg_txt
   # quote:
   '"' . $name . '"';
   }
- 
+
 1;
 __END__
 
@@ -534,7 +537,7 @@ Graph::Easy::As_vcg - Generate VCG/GDL text from Graph::Easy object
 =head1 SYNOPSIS
 
 	use Graph::Easy;
-	
+
 	my $graph = Graph::Easy->new();
 
 	my $bonn = Graph::Easy::Node->new(
@@ -560,7 +563,7 @@ This prints something like this:
 =head1 DESCRIPTION
 
 C<Graph::Easy::As_vcg> contains just the code for converting a
-L<Graph::Easy|Graph::Easy> object to either a VCG 
+L<Graph::Easy|Graph::Easy> object to either a VCG
 or GDL textual description.
 
 Note that the generated format is compatible to C<GDL> aka I<Graph

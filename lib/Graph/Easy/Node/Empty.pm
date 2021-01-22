@@ -8,9 +8,10 @@ package Graph::Easy::Node::Empty;
 use Graph::Easy::Node;
 
 @ISA = qw/Graph::Easy::Node/;
-$VERSION = '0.06';
+$VERSION = '0.76';
 
 use strict;
+use warnings;
 
 #############################################################################
 
@@ -20,7 +21,7 @@ sub _init
   my ($self,$args) = @_;
 
   $self->SUPER::_init($args);
-  
+
   $self->{class} = 'node.empty';
 
   $self;

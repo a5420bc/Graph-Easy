@@ -7,9 +7,10 @@ package Graph::Easy::Edge;
 
 use Graph::Easy::Node;
 @ISA = qw/Graph::Easy::Node/;		# an edge is just a special node
-$VERSION = '0.31';
+$VERSION = '0.76';
 
 use strict;
+use warnings;
 
 use constant isa_cell => 1;
 
@@ -19,13 +20,13 @@ sub _init
   {
   # generic init, override in subclasses
   my ($self,$args) = @_;
-  
+
   $self->{class} = 'edge';
 
   # leave this unitialized until we need it
   # $self->{cells} = [ ];
 
-  foreach my $k (keys %$args)
+  foreach my $k (sort keys %$args)
     {
     if ($k !~ /^(label|name|style)\z/)
       {
@@ -46,11 +47,11 @@ sub _init
 sub bidirectional
   {
   my $self = shift;
- 
+
   if (@_ > 0)
     {
     my $old = $self->{bidirectional} || 0;
-    $self->{bidirectional} = $_[0] ? 1 : 0; 
+    $self->{bidirectional} = $_[0] ? 1 : 0;
 
     # invalidate layout?
     $self->{graph}->{score} = undef if $old != $self->{bidirectional} && ref($self->{graph});
@@ -66,7 +67,7 @@ sub undirected
   if (@_ > 0)
     {
     my $old = $self->{undirected} || 0;
-    $self->{undirected} = $_[0] ? 1 : 0; 
+    $self->{undirected} = $_[0] ? 1 : 0;
 
     # invalidate layout?
     $self->{graph}->{score} = undef if $old != $self->{undirected} && ref($self->{graph});
@@ -149,7 +150,7 @@ sub _cells
   }
 
 sub _clear_cells
-  { 
+  {
   # remove all belonging cells
   my $self = shift;
 
@@ -241,7 +242,7 @@ sub _add_cell
   # if after is defined, but not a ref, the new cell will be inserted
   # at the specified position.
   my ($self, $cell, $after, $before) = @_;
- 
+
   $self->{cells} = [] unless defined $self->{cells};
   my $cells = $self->{cells};
 
@@ -264,7 +265,7 @@ sub _add_cell
       for my $cell (@$cells)
         {
         last if $cell == $after;
-        $ofs++; 
+        $ofs++;
         }
       }
     elsif (ref($after) && ref($before))
@@ -289,14 +290,14 @@ sub _add_cell
         for my $cell (@$cells)
           {
           last if $cell == $after;
-          $ofs++; 
+          $ofs++;
           }
         $found++;
 	}
       $self->_croak("Could not find $after and $before") unless $found;
       }
     splice (@$cells, $ofs, 0, $cell);
-    } 
+    }
   else
     {
     # insert new cell at the end
@@ -419,7 +420,7 @@ sub flow
   $flow = $self->{from}->{att}->{flow} if !defined $flow;
 
   # if that didn't work out either, use the parents flows
-  $flow = $self->parent()->attribute('flow') if !defined $flow; 
+  $flow = $self->parent()->attribute('flow') if !defined $flow;
   # or finally, the default "east":
   $flow = 90 if !defined $flow;
 
@@ -442,7 +443,7 @@ sub port
   $self->_croak("'$which' must be one of 'start' or 'end' in port()") unless $which =~ /^(start|end)/;
 
   # our flow comes from ourselves
-  my $sp = $self->attribute($which); 
+  my $sp = $self->attribute($which);
 
   return (undef,undef) unless defined $sp && $sp ne '';
 
@@ -548,7 +549,7 @@ During the layout phase, each edge also contains a list of path-elements
 
 	$last_error = $edge->error();
 
-	$cvt->error($error);			# set new messags
+	$cvt->error($error);			# set new messages
 	$cvt->error('');			# clear error
 
 Returns the last error message, or '' for no error.
@@ -620,7 +621,7 @@ An optional parameter will set the undirected status of the edge.
 
 Return true if the edge has restriction on the starting or ending
 port, e.g. either the C<start> or C<end> attribute is set on
-this edge. 
+this edge.
 
 =head2 start_port()
 
